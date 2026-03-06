@@ -1,5 +1,7 @@
 const User = require('../models/user.model.js')
-const jwt = require('jsonwebtoken')
+const jwt = require('jsonwebtoken');
+const { welcomeEmailTemplate } = require('../utils/emailTemplate.js');
+const sendEmail = require('../utils/sendEmail.js');
 
 // POST
 // /api/auth/register 
@@ -33,6 +35,9 @@ async function registerUser(req,res){
         },
         token
     })
+
+    const html = welcomeEmailTemplate;
+    await sendEmail(email,"Welcome to the bank app",html);
 }
 
 async function loginUser(req,res){
