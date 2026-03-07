@@ -23,7 +23,7 @@ async function registerUser(req,res){
         password
     })
 
-    const token = jwt.sign({userID:user._id},process.env.JWT_SECRET,{expiresIn:'7d'});
+    const token = jwt.sign({userId:user._id},process.env.JWT_SECRET,{expiresIn:'7d'});
 
     res.cookie("token",token);
 
@@ -36,7 +36,7 @@ async function registerUser(req,res){
         token
     })
 
-    const html = welcomeEmailTemplate;
+    const html = welcomeEmailTemplate(user.name);
     await sendEmail(email,"Welcome to the bank app",html);
 }
 
