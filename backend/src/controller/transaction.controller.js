@@ -152,4 +152,74 @@ async function createTransaction(req, res) {
 
 }
 
-module.exports = createTransaction;
+
+async function createInitialFundsTransaction(req,res){
+    const {toAccount,amount,idempotencyKey} = req.body;
+    if(!toAccount || !amount || !idempotencyKey){
+        return res.status(401).json({
+            message:"All fields are required"
+        })
+    }
+
+    const toUserAccount = await accountModel.findOne({_id:toAccount});
+
+    if(!toUserAccount){
+        return res.status(400).json({
+            message:"Invalid toAccount "
+        })
+    }
+    console.log("REQ USER:", req.user._id);
+    const fromUserAccount = await accountModel.findOne({
+        user:req.user._id
+    })
+
+    if(!fromUserAccount){
+        return res.status(400).json({
+            message:"System user account not found"
+        })
+    }
+
+    // whenever you pass the data through session always pass through array
+   const session = await mongoose.startSession();
+session.startTransaction();
+
+const transaction = new transactionModel({
+    fromAccount: fromUserAccount._id,
+    toAccount,
+    status: "PENDING",
+    amount,
+    idempotencyKey
+});
+
+await transaction.save({ session });
+
+await ledgerModel.create([{
+    account: fromUserAccount._id,
+    amount,
+    transaction: transaction._id,
+    type: "DEBIT"
+}], { session });
+
+await ledgerModel.create([{
+    account: toAccount,
+    amount,
+    transaction: transaction._id,
+    type: "CREDIT"
+}], { session });
+
+transaction.status = "COMPLETED";
+await transaction.save({ session });
+
+await session.commitTransaction();
+
+    return res.status(201).json({
+        message:"Initial funds transaction completed",
+        transaction:transaction
+    })
+
+}
+
+module.exports = {
+    createTransaction,
+    createInitialFundsTransaction
+};
