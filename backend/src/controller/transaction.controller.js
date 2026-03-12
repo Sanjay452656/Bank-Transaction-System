@@ -1,6 +1,7 @@
 const transactionModel = require('../models/transaction.model.js')
 const ledgerModel = require('../models/ledger.model.js')
 const accountModel = require('../models/account.model.js')
+const sendEmail = require('../utils/sendEmail.js');
 const mongoose = require('mongoose');
 
 /**
@@ -29,7 +30,7 @@ async function createTransaction(req, res) {
         })
     }
 
-    const fromUserAccount = await accountModel.findOne({ _id: fromAccount });
+    const fromUserAccount = await accountModel.findOne({ _id: fromAccount }).populate('user');
     const toUserAccount = await accountModel.findOne({ _id: toAccount });
 
     if (!fromUserAccount || !toUserAccount) {
@@ -94,27 +95,28 @@ async function createTransaction(req, res) {
     const session = await mongoose.startSession();
     session.startTransaction();
 
-    const transaction = await transactionModel.create({
+    const transaction = new transactionModel({
         fromAccount,
         toAccount,
         status: "PENDING",
         amount,
         idempotencyKey,
-    }, { session })
+    });
+    await transaction.save({ session });
 
-    const debitLedgerEntry = await ledgerModel.create({
+    const debitLedgerEntry = await ledgerModel.create([{
         account: fromAccount,
         amount,
         transaction: transaction._id,
         type: "DEBIT"
-    }, { session })
+    }], { session })
 
-    const creditLedgerEntry = await ledgerModel.create({
+    const creditLedgerEntry = await ledgerModel.create([{
         account: toAccount,
         amount: amount,
         transaction: transaction._id,
         type: "CREDIT"
-    }, { session })
+    }], { session })
 
     transaction.status = "COMPLETED"
     await transaction.save({ session })
@@ -142,13 +144,12 @@ async function createTransaction(req, res) {
    <p>Thank you for using Bank App.</p>
    `;
 
-    await sendEmail(fromUserAccount.email, subject, html);
-
-    return res.status(201).json({
+   return res.status(201).json({
         message:"Transaction completed successfully",
         transaction:transaction
     })
 
+    await sendEmail(fromUserAccount.user.email, subject, html);
 
 }
 
@@ -180,7 +181,7 @@ async function createInitialFundsTransaction(req,res){
     }
 
     // whenever you pass the data through session always pass through array
-   const session = await mongoose.startSession();
+ const session = await mongoose.startSession();
 session.startTransaction();
 
 const transaction = new transactionModel({
@@ -211,6 +212,7 @@ transaction.status = "COMPLETED";
 await transaction.save({ session });
 
 await session.commitTransaction();
+session.endSession()
 
     return res.status(201).json({
         message:"Initial funds transaction completed",

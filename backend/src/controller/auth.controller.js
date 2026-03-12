@@ -17,6 +17,7 @@ async function registerUser(req,res){
         })
     }
 
+
     const user = await User.create({
         name,
         email,

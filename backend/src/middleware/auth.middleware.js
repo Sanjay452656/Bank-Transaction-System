@@ -46,7 +46,7 @@ console.log("USER ID:", decoded.user_id);
         const user = await User.findById(decoded.userId).select("+systemUser");
         // userId instead of user._id
         if (!user) {
-            return res.status(401).json({
+            return res.status(403).json({ // forbidden access
                 message: "User not found"
             });
         }
