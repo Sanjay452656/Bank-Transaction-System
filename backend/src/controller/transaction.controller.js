@@ -143,13 +143,14 @@ async function createTransaction(req, res) {
 
    <p>Thank you for using Bank App.</p>
    `;
+   
+   await sendEmail(fromUserAccount.user.email, subject, html);
 
    return res.status(201).json({
         message:"Transaction completed successfully",
         transaction:transaction
     })
 
-    await sendEmail(fromUserAccount.user.email, subject, html);
 
 }
 
@@ -221,7 +222,30 @@ session.endSession()
 
 }
 
+async function getTransactionHistory(req, res) {
+    // Find all accounts belonging to the logged-in user
+    const userAccounts = await accountModel.find({ user: req.user._id });
+    const accountIds = userAccounts.map(acc => acc._id);
+
+    if (accountIds.length === 0) {
+        return res.status(200).json({ transactions: [] });
+    }
+
+    const transactions = await transactionModel.find({
+        $or: [
+            { fromAccount: { $in: accountIds } },
+            { toAccount: { $in: accountIds } }
+        ]
+    })
+    .populate('fromAccount', '_id status currency')
+    .populate('toAccount', '_id status currency')
+    .sort({ createdAt: -1 });
+
+    res.status(200).json({ transactions });
+}
+
 module.exports = {
     createTransaction,
-    createInitialFundsTransaction
+    createInitialFundsTransaction,
+    getTransactionHistory
 };

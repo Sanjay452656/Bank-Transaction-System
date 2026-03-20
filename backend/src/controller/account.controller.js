@@ -5,7 +5,6 @@ async function createAccount(req,res){
 
     const user = req.user;
 
-
     const account = await accountModel.create({
         user:user._id
     })

@@ -8,6 +8,7 @@ const accountSchema = new mongoose.Schema({
         required:[true,"Account must be associated with user"],
         index:true,
     },
+
     status:{
         type:String,
         enum:{
@@ -16,6 +17,7 @@ const accountSchema = new mongoose.Schema({
         },
         default:'ACTIVE'
     },
+    
     currency:{
         type:String,
         required:[true,'Currency is required'],
