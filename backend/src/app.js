@@ -8,6 +8,10 @@ const cors = require('cors');
 
 const app = express();
 
+app.get('/',(req,res)=>{
+  res.send("Welcome to the bank app API");
+})
+
 app.use(cors({
   origin: "http://localhost:5173",
   credentials: true
