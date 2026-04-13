@@ -32,7 +32,7 @@ async function createTransaction(req, res) {
 
     const fromUserAccount = await accountModel.findOne({ _id: fromAccount }).populate('user');
     const toUserAccount = await accountModel.findOne({ _id: toAccount });
-
+    
     if (!fromUserAccount || !toUserAccount) {
         return res.status(400).json({
             message: "Invalid from or to Account"
